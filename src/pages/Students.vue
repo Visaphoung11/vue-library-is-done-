@@ -1,118 +1,172 @@
 <template>
-  <main class="flex-1 p-6 bg-white dark:bg-gray-900 min-h-screen mt-16">
+  <main class="flex-1 p-4 sm:p-8 bg-white min-h-screen mt-0">
     <!-- Header -->
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">
-      Dashboard
+    <h1
+      class="text-2xl sm:text-3xl font-semibold text-gray-800 animate-fade-in"
+    >
+      {{ t("nav.dashboard") }}
     </h1>
-    <p class="text-gray-600 dark:text-gray-400 mb-4">Overdue book loans</p>
+    <p class="text-gray-500 mb-4 sm:mb-6">
+      {{ t("dashboard.overview") }}
+    </p>
 
-    <!-- Add Student Form -->
-    <div class="flex justify-between items-center mb-2">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-        Students List
+    <!-- Add Student Button -->
+    <div class="flex justify-between items-center mb-4">
+      <h2
+        class="text-lg sm:text-xl font-semibold text-gray-800 animate-fade-in"
+      >
+        {{ t("students.title") }}
       </h2>
       <button
-        @click="showForm = !showForm"
-        class="px-4 py-1 border border-black dark:border-gray-600 rounded text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        @click="showModal = true"
+        class="px-4 sm:px-5 py-1 sm:py-2 border border-blue-500 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors duration-300"
       >
-        {{ showForm ? "Cancel" : "New" }}
+        New
       </button>
     </div>
 
-    <!-- Form (shown when showForm is true) -->
-    <form
-      v-if="showForm"
-      @submit.prevent="addStudent"
-      class="mb-8 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 shadow-sm"
+    <!-- Modal for Adding Student -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
     >
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >Name</label
-          >
-          <input
-            v-model="newStudent.name"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-        <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >Action</label
-          >
-          <input
-            v-model="newStudent.action"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-        <div>
-          <label
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >Number</label
-          >
-          <input
-            v-model="newStudent.number"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-          />
-        </div>
-        <div class="flex items-end">
-          <button
-            type="submit"
-            class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-          >
-            Add Student
-          </button>
-        </div>
+      <div
+        class="bg-gray-200 p-6 rounded-lg shadow-xl w-full max-w-lg animate-form-slide"
+      >
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+          Add New Student
+        </h3>
+        <form @submit.prevent="addStudent">
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Name</label
+              >
+              <input
+                v-model="newStudent.name"
+                required
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Action</label
+              >
+              <input
+                v-model="newStudent.action"
+                required
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Number</label
+              >
+              <input
+                v-model="newStudent.number"
+                required
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
+              />
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              @click="showModal = false"
+              class="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors duration-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-300"
+            >
+              Add Student
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
 
     <!-- Students Table -->
     <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
+      <table class="min-w-full text-xs sm:text-sm">
         <thead>
-          <tr class="bg-[#0a1c3e] text-white text-left">
-            <th class="px-4 py-2">No</th>
-            <th class="px-4 py-2">Name</th>
-            <th class="px-4 py-2">ID</th>
-            <th class="px-4 py-2">Action</th>
-            <th class="px-4 py-2">Number</th>
-            <th class="px-4 py-2">Add</th>
-            <th class="px-4 py-2">Delete</th>
+          <tr class="bg-slate-800 text-white text-left">
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.no") }}
+            </th>
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.name") }}
+            </th>
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.id") }}
+            </th>
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.action") }}
+            </th>
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.number") }}
+            </th>
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.add") }}
+            </th>
+            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
+              {{ t("students.delete") }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="(student, index) in students"
             :key="student.id"
-            :class="
-              index % 2 === 0
-                ? 'bg-white dark:bg-gray-800'
-                : 'bg-gray-100 dark:bg-gray-700'
-            "
+            :class="[
+              index % 2 === 0 ? 'bg-white' : 'bg-gray-50',
+              'animate-row-slide',
+              'hover:bg-gray-100 transition-colors duration-200',
+              clickedRow === index ? 'bg-blue-100' : '',
+            ]"
+            @click="handleRowClick(index)"
           >
-            <td class="px-4 py-2">{{ index + 1 }}</td>
-            <td class="px-4 py-2">{{ student.name }}</td>
-            <td class="px-4 py-2">{{ student.id }}</td>
-            <td class="px-4 py-2">{{ student.action }}</td>
-            <td class="px-4 py-2">{{ student.number }}</td>
-            <td class="px-4 py-2">
+            <td
+              class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
+            >
+              {{ index + 1 }}
+            </td>
+            <td
+              class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
+            >
+              {{ student.name }}
+            </td>
+            <td
+              class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
+            >
+              {{ student.id }}
+            </td>
+            <td
+              class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
+            >
+              {{ student.action }}
+            </td>
+            <td
+              class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
+            >
+              {{ student.number }}
+            </td>
+            <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
-                @click="showForm = !showForm"
-                class="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors"
+                @click.stop="showModal = true"
+                class="bg-orange-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-orange-500 transition-colors duration-300"
               >
-                Add
+                {{ t("students.add") }}
               </button>
             </td>
-            <td class="px-4 py-2">
+            <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
-                @click="deleteStudent(index)"
-                class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors"
+                @click.stop="deleteStudent(index)"
+                class="bg-red-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-red-500 transition-colors duration-300"
               >
-                Delete
+                {{ t("students.delete") }}
               </button>
             </td>
           </tr>
@@ -121,11 +175,11 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex justify-end mt-4 space-x-2">
+    <div class="flex justify-end mt-4 sm:mt-6 space-x-2 sm:space-x-3">
       <button
         v-for="page in 3"
         :key="page"
-        class="border px-3 py-1 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        class="border px-3 sm:px-4 py-1 sm:py-2 text-blue-600 border-blue-500 rounded-lg hover:bg-blue-50 transition-colors duration-300"
       >
         {{ page }}
       </button>
@@ -134,6 +188,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLanguage } from "../composables/useLanguage";
 import { ref } from "vue";
 
 interface Student {
@@ -142,6 +197,8 @@ interface Student {
   action: string;
   number: string;
 }
+
+const { t } = useLanguage();
 
 const students = ref<Student[]>([
   { id: "22345-1", name: "Kevin", action: "Spider-man", number: "0963559607" },
@@ -161,16 +218,81 @@ const newStudent = ref<Omit<Student, "id">>({
   number: "",
 });
 
-const showForm = ref(false);
+const showModal = ref(false);
+const clickedRow = ref<number | null>(null);
 
 const addStudent = () => {
   const id = `${students.value.length + 1}-${Math.floor(Math.random() * 1000)}`;
   students.value.push({ ...newStudent.value, id });
   newStudent.value = { name: "", action: "", number: "" };
-  showForm.value = false;
+  showModal.value = false;
 };
 
 const deleteStudent = (index: number) => {
   students.value.splice(index, 1);
 };
+
+const handleRowClick = (index: number) => {
+  clickedRow.value = index;
+  setTimeout(() => {
+    clickedRow.value = null;
+  }, 300); // Reset after 300ms for visual feedback
+};
 </script>
+
+<style scoped>
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-form-slide {
+  animation: slide-in 0.6s ease-out;
+}
+
+.animate-row-slide {
+  animation: slide-in 0.4s ease-out;
+}
+
+/* Ensure table is responsive */
+table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Improve readability on small screens */
+@media (max-width: 640px) {
+  table {
+    font-size: 0.75rem; /* Smaller text on mobile */
+  }
+  th,
+  td {
+    min-width: 80px; /* Prevent columns from collapsing too much */
+  }
+}
+
+/* Custom backdrop blur for Tailwind */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px); /* For Safari compatibility */
+}
+</style>
