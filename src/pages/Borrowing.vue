@@ -16,7 +16,7 @@
         Borrowed Books List
       </h2>
       <button
-        @click="showModal = true"
+        @click="openAddModal"
         class="px-4 sm:px-5 py-1 sm:py-2 border border-blue-500 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors duration-300"
       >
         New
@@ -36,25 +36,64 @@
           <div class="grid grid-cols-1 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700"
-                >Student ID</label
+                >Student</label
               >
-              <input
-                v-model="studentId"
-                type="text"
+              <select
+                v-model="newLoan.studentId"
                 required
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
-              />
+                @change="validateForm"
+              >
+                <option value="" disabled>Select a student</option>
+                <option
+                  v-for="student in students"
+                  :key="student.id"
+                  :value="student.id"
+                >
+                  {{ student.name }} ({{ student.id_card }})
+                </option>
+              </select>
+              <p v-if="errors.studentId" class="text-red-500 text-xs mt-1">
+                {{ errors.studentId }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700"
-                >Book ID</label
+                >Book</label
               >
-              <input
-                v-model="bookId"
-                type="text"
+              <select
+                v-model="newLoan.bookId"
                 required
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
+                @change="validateForm"
+              >
+                <option value="" disabled>Select a book</option>
+                <option
+                  v-for="book in availableBooks"
+                  :key="book.id"
+                  :value="book.id"
+                >
+                  {{ book.title }} ({{ book.author }})
+                </option>
+              </select>
+              <p v-if="errors.bookId" class="text-red-500 text-xs mt-1">
+                {{ errors.bookId }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700"
+                >Due Date</label
+              >
+              <input
+                v-model="newLoan.dueDate"
+                type="date"
+                required
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
+                @input="validateForm"
               />
+              <p v-if="errors.dueDate" class="text-red-500 text-xs mt-1">
+                {{ errors.dueDate }}
+              </p>
             </div>
           </div>
           <div class="mt-6 flex justify-end space-x-3">
@@ -67,7 +106,9 @@
             </button>
             <button
               type="submit"
+              :disabled="!isFormValid"
               class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-300"
+              :class="{ 'opacity-50 cursor-not-allowed': !isFormValid }"
             >
               Borrow Book
             </button>
@@ -105,7 +146,7 @@
         <tbody>
           <tr
             v-for="(loan, index) in loans"
-            :key="index"
+            :key="loan.id"
             :class="[
               index % 2 === 0 ? 'bg-white' : 'bg-gray-50',
               'animate-row-slide',
@@ -122,12 +163,12 @@
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ loan.student }}
+              {{ getStudentName(loan.studentId) }}
             </td>
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ loan.book }}
+              {{ getBookTitle(loan.bookId) }}
             </td>
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
@@ -147,7 +188,7 @@
             </td>
             <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
-                @click.stop="showModal = true"
+                @click.stop="openAddModal"
                 class="bg-orange-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-orange-500 transition-colors duration-300"
               >
                 Add
@@ -181,52 +222,133 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useToast } from "vue-toastification";
+import { useLibraryStore } from "../stores/library";
 
 interface Loan {
-  student: string;
-  book: string;
+  id: string;
+  studentId: string;
+  bookId: string;
   dueDate: string;
   status: "Borrowed" | "Returned";
 }
 
-const studentId = ref("");
-const bookId = ref("");
-const showModal = ref(false);
-const clickedRow = ref<number | null>(null);
+interface NewLoan {
+  studentId: string;
+  bookId: string;
+  dueDate: string;
+}
+
+const toast = useToast();
+const store = useLibraryStore();
 
 const loans = ref<Loan[]>([
   {
-    student: "S001",
-    book: "Book A",
+    id: "L001",
+    studentId: "22345-1",
+    bookId: "B001",
     dueDate: "2025-06-21",
     status: "Borrowed",
   },
   {
-    student: "S002",
-    book: "Book B",
+    id: "L002",
+    studentId: "5151-7",
+    bookId: "B002",
     dueDate: "2025-06-25",
     status: "Borrowed",
   },
 ]);
 
-const handleBorrow = () => {
-  const newLoan = {
-    student: studentId.value,
-    book: bookId.value,
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    status: "Borrowed" as const,
+const newLoan = ref<NewLoan>({
+  studentId: "",
+  bookId: "",
+  dueDate: "",
+});
+
+const errors = ref<Partial<Record<keyof NewLoan, string>>>({
+  studentId: "",
+  bookId: "",
+  dueDate: "",
+});
+
+const showModal = ref(false);
+const clickedRow = ref<number | null>(null);
+const isFormValid = ref(false);
+
+// Access students and books from store
+const students = computed(() => store.students);
+const books = computed(() => store.books);
+const availableBooks = computed(() =>
+  books.value.filter(
+    (book) =>
+      book.available &&
+      !loans.value.some(
+        (loan) => loan.bookId === book.id && loan.status === "Borrowed"
+      )
+  )
+);
+
+const validateForm = () => {
+  const today = new Date().toISOString().split("T")[0];
+  errors.value = {
+    studentId: newLoan.value.studentId
+      ? students.value.some((s) => s.id === newLoan.value.studentId)
+        ? ""
+        : "Student does not exist"
+      : "Student is required",
+    bookId: newLoan.value.bookId
+      ? books.value.some((b) => b.id === newLoan.value.bookId && b.available)
+        ? ""
+        : "Book is not available or does not exist"
+      : "Book is required",
+    dueDate: newLoan.value.dueDate
+      ? newLoan.value.dueDate >= today
+        ? ""
+        : "Due date must be today or later"
+      : "Due date is required",
   };
-  loans.value.push(newLoan);
-  studentId.value = "";
-  bookId.value = "";
+  isFormValid.value = Object.values(errors.value).every((error) => !error);
+};
+
+const openAddModal = () => {
+  newLoan.value = { studentId: "", bookId: "", dueDate: "" };
+  errors.value = { studentId: "", bookId: "", dueDate: "" };
+  isFormValid.value = false;
+  showModal.value = true;
+};
+
+const handleBorrow = () => {
+  if (!isFormValid.value) return;
+
+  const id = `L${loans.value.length + 1}-${Math.floor(Math.random() * 1000)}`;
+  loans.value.push({
+    id,
+    studentId: newLoan.value.studentId,
+    bookId: newLoan.value.bookId,
+    dueDate: newLoan.value.dueDate,
+    status: "Borrowed",
+  });
+  store.setBookAvailability(newLoan.value.bookId, false); // Mark book as unavailable
+  toast.success("Loan added successfully!");
+  newLoan.value = { studentId: "", bookId: "", dueDate: "" };
   showModal.value = false;
 };
 
 const returnBook = (index: number) => {
   loans.value[index].status = "Returned";
+  store.setBookAvailability(loans.value[index].bookId, true); // Mark book as available
+  toast.success("Book returned successfully!");
+};
+
+const getStudentName = (studentId: string) => {
+  const student = students.value.find((s) => s.id === studentId);
+  return student ? `${student.name} (${student.id_card})` : "Unknown";
+};
+
+const getBookTitle = (bookId: string) => {
+  const book = books.value.find((b) => b.id === bookId);
+  return book ? `${book.title} (${book.author})` : "Unknown";
 };
 
 const handleRowClick = (index: number) => {

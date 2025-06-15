@@ -1,12 +1,10 @@
 <template>
   <main class="flex-1 p-4 sm:p-8 bg-white min-h-screen mt-0">
     <!-- Header -->
-    <h1
-      class="text-2xl sm:text-3xl font-semibold text-gray-800 animate-fade-in"
-    >
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 animate-fade-in">
       {{ t("dashboard.title") }}
     </h1>
-    <p class="text-gray-500 mb-4 sm:mb-8">
+    <p class="text-gray-800 mb-4 sm:mb-8">
       {{ t("dashboard.overdue") }}
     </p>
 
@@ -92,7 +90,7 @@
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div
-        class="relative bg-blue-500 rounded-lg shadow-lg p-4 flex items-center space-x-3 transform hover:scale-105 transition-transform duration-300"
+        class="relative bg-amber-500 rounded-lg shadow-lg p-4 flex items-center space-x-3 transform hover:scale-105 transition-transform duration-300"
       >
         <i class="fas fa-dollar-sign text-2xl text-white"></i>
         <div class="relative text-white">
@@ -105,7 +103,7 @@
       </div>
 
       <div
-        class="relative bg-blue-500 rounded-lg shadow-lg p-4 flex items-center space-x-3 transform hover:scale-105 transition-transform duration-300"
+        class="relative bg-rose-500 rounded-lg shadow-lg p-4 flex items-center space-x-3 transform hover:scale-105 transition-transform duration-300"
       >
         <i class="fas fa-users text-2xl text-white"></i>
         <div class="relative text-white">
@@ -118,7 +116,7 @@
       </div>
 
       <div
-        class="relative bg-blue-500 rounded-lg shadow-lg p-4 flex items-center space-x-3 transform hover:scale-105 transition-transform duration-300"
+        class="relative bg-lime-500 rounded-lg shadow-lg p-4 flex items-center space-x-3 transform hover:scale-105 transition-transform duration-300"
       >
         <i class="fas fa-tasks text-2xl text-white"></i>
         <div class="relative text-white">
