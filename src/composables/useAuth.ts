@@ -1,15 +1,13 @@
-// composables/useAuth.ts
 import { ref, computed, type Ref, type ComputedRef } from "vue";
-import type { User, AuthCredential } from "../types";
+import type { User } from "../types";
 
 const user: Ref<User | null> = ref(null);
-const isAuthenticated: ComputedRef<boolean> = computed(() => !!user.value);
+const token: Ref<string | null> = ref(null);
+const isAuthenticated: ComputedRef<boolean> = computed(
+  () => !!user.value && !!token.value
+);
 
-// Demo credentials
-const ADMIN_CREDENTIALS: AuthCredential[] = [
-  { username: "admin", password: "admin123", id: "1", role: "admin" },
-  { username: "librarian", password: "lib123", id: "2", role: "librarian" },
-];
+const API_URL = "http://localhost:3000/api/auth/login";
 
 export function useAuth() {
   const login = async (
@@ -18,47 +16,76 @@ export function useAuth() {
   ): Promise<boolean> => {
     console.log("Login attempt with username:", username);
 
-    const foundUser = ADMIN_CREDENTIALS.find(
-      (cred) => cred.username === username && cred.password === password
-    );
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (foundUser) {
-      const userData: User = {
-        id: foundUser.id,
-        username: foundUser.username,
-        role: foundUser.role,
-      };
-      user.value = userData;
-      localStorage.setItem("library_user", JSON.stringify(userData));
-      return true;
+      if (!response.ok) {
+        console.error(`Login failed with status ${response.status}`);
+        return false;
+      }
+
+      const data = await response.json();
+
+      if (data?.token && data?.user) {
+        const userData: User = {
+          id: data.user.id.toString(),
+          full_name: data.user.full_name,
+          username: data.user.username,
+          role: data.user.role,
+        };
+
+        user.value = userData;
+        token.value = data.token;
+
+        localStorage.setItem("library_user", JSON.stringify(userData));
+        localStorage.setItem("library_token", data.token);
+
+        return true;
+      } else {
+        console.error("Invalid login response:", data);
+        return false;
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      return false;
     }
-    return false;
   };
 
   const logout = (): void => {
     user.value = null;
+    token.value = null;
     localStorage.removeItem("library_user");
+    localStorage.removeItem("library_token");
   };
 
   const checkAuth = (): void => {
-    const savedUser = localStorage.getItem("library_user");
-    if (savedUser) {
-      try {
+    try {
+      const savedUser = localStorage.getItem("library_user");
+      const savedToken = localStorage.getItem("library_token");
+
+      if (savedUser && savedToken) {
         user.value = JSON.parse(savedUser) as User;
-      } catch (error) {
-        console.error("Error parsing saved user:", error);
-        localStorage.removeItem("library_user");
+        token.value = savedToken;
       }
+    } catch (error) {
+      console.error("Error restoring auth state:", error);
+      logout();
     }
   };
 
-  // Initialize on first use
-  if (!user.value) {
-    checkAuth();
-  }
+  // Auto-restore on first load
+  checkAuth();
 
   return {
     user: computed(() => user.value),
+    token: computed(() => token.value),
     isAuthenticated,
     login,
     logout,

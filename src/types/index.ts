@@ -27,6 +27,7 @@ export interface AuthCredential {
   password: string;
   id: string;
   role: "admin" | "librarian";
+  full_name: string;
 }
 
 export interface Translation {
@@ -36,4 +37,13 @@ export interface Translation {
 export interface Translations {
   en: Translation;
   km: Translation;
+}
+// Removed duplicate User interface declaration
+
+export interface User {
+  id: string;
+
+  username: string;
+
+  full_name: string; // Added full_name property
 }

@@ -43,13 +43,13 @@
                 >Name</label
               >
               <input
-                v-model="newStudent.name"
+                v-model="newStudent.full_name"
                 required
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
                 @input="validateForm"
               />
-              <p v-if="errors.name" class="text-red-500 text-xs mt-1">
-                {{ errors.name }}
+              <p v-if="errors.full_name" class="text-red-500 text-xs mt-1">
+                {{ errors.full_name }}
               </p>
             </div>
             <div>
@@ -68,35 +68,16 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700"
-                >Contact Number</label
+                >Class</label
               >
               <input
-                v-model="newStudent.contact_number"
+                v-model="newStudent.class"
                 required
-                type="tel"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
                 @input="validateForm"
               />
-              <p v-if="errors.contact_number" class="text-red-500 text-xs mt-1">
-                {{ errors.contact_number }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700"
-                >Registration Date</label
-              >
-              <input
-                v-model="newStudent.registration_date"
-                required
-                type="date"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
-                @input="validateForm"
-              />
-              <p
-                v-if="errors.registration_date"
-                class="text-red-500 text-xs mt-1"
-              >
-                {{ errors.registration_date }}
+              <p v-if="errors.student_class" class="text-red-500 text-xs mt-1">
+                {{ errors.student_class }}
               </p>
             </div>
           </div>
@@ -136,10 +117,10 @@
               {{ t("students.id") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              Contact Number
+              Class
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              Registration Date
+              {{ t("books.fields.created_by") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               {{ t("students.add") }}
@@ -172,7 +153,7 @@
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ student.name }}
+              {{ student.full_name }}
             </td>
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
@@ -182,12 +163,12 @@
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ student.contact_number }}
+              {{ student.class }}
             </td>
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ student.registration_date }}
+              {{ student.created_by }}
             </td>
             <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
@@ -232,74 +213,82 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useLanguage } from "../composables/useLanguage";
 import { useToast } from "vue-toastification";
+import { useRouter } from "vue-router";
+import { useAuth } from "../composables/useAuth";
 
 interface Student {
   id: string;
-  name: string;
+  full_name: string;
   id_card: string;
-  contact_number: string;
-  registration_date: string;
+  class: string;
+  created_by: number;
 }
 
 const { t } = useLanguage();
 const toast = useToast();
+const router = useRouter();
+const { token, isAuthenticated } = useAuth();
 
-const students = ref<Student[]>([
-  {
-    id: "22345-1",
-    name: "Kevin",
-    id_card: "STU001",
-    contact_number: "0963559607",
-    registration_date: "2025-01-15",
-  },
-  {
-    id: "5151-7",
-    name: "Zeru",
-    id_card: "STU002",
-    contact_number: "0886886775",
-    registration_date: "2025-02-10",
-  },
-  {
-    id: "5566-2",
-    name: "Chang",
-    id_card: "STU003",
-    contact_number: "0123456789",
-    registration_date: "2025-03-05",
-  },
-  {
-    id: "7788-9",
-    name: "Than",
-    id_card: "STU004",
-    contact_number: "0987654321",
-    registration_date: "2025-04-20",
-  },
-]);
+const API_URL = "http://localhost:3000/api/students";
 
+const students = ref<Student[]>([]);
 const newStudent = ref<Partial<Student>>({
-  name: "",
+  full_name: "",
   id_card: "",
-  contact_number: "",
-  registration_date: "",
+  class: "",
 });
-
-const errors = ref<Partial<Record<keyof Student, string>>>({
-  name: "",
+const errors = ref<Partial<Record<keyof Student | "student_class", string>>>({
+  full_name: "",
   id_card: "",
-  contact_number: "",
-  registration_date: "",
+  student_class: "",
 });
-
 const showModal = ref(false);
 const clickedRow = ref<number | null>(null);
 const editingStudent = ref<Student | null>(null);
 const isFormValid = ref(false);
 
+// Fetch students from API
+const fetchStudents = async () => {
+  if (!isAuthenticated.value || !token.value) {
+    toast.error("Please log in to access students");
+    router.push("/login");
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    students.value = data.map((student: any) => ({
+      id: student.id.toString(),
+      full_name: student.full_name,
+      id_card: student.id_card,
+      class: student.class,
+      created_by: student.created_by,
+    }));
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    toast.error("Failed to fetch students");
+  }
+};
+
+// Validate form inputs
 const validateForm = () => {
   errors.value = {
-    name: newStudent.value.name ? "" : "Name is required",
+    full_name: newStudent.value.full_name ? "" : "Name is required",
     id_card: newStudent.value.id_card
       ? students.value.some(
           (s) =>
@@ -309,92 +298,110 @@ const validateForm = () => {
         ? "ID Card must be unique"
         : ""
       : "ID Card is required",
-    contact_number: newStudent.value.contact_number
-      ? /^\d{10}$/.test(newStudent.value.contact_number)
-        ? ""
-        : "Contact number must be 10 digits"
-      : "Contact number is required",
-    registration_date: newStudent.value.registration_date
-      ? ""
-      : "Registration date is required",
+    class: newStudent.value.class ? "" : "Class is required",
   };
 
   isFormValid.value = Object.values(errors.value).every((error) => !error);
 };
 
+export interface StudentForm {
+  full_name: string;
+  id_card: string;
+  student_class: string;
+}
+// Open modal for adding a new student
 const openAddModal = () => {
   editingStudent.value = null;
   newStudent.value = {
-    name: "",
+    full_name: "",
     id_card: "",
-    contact_number: "",
-    registration_date: "",
+    class: "",
   };
   errors.value = {
-    name: "",
+    full_name: "",
     id_card: "",
-    contact_number: "",
-    registration_date: "",
+    student_class: "",
   };
   isFormValid.value = false;
   showModal.value = true;
 };
 
+// Open modal for editing a student
 const openEditModal = (index: number) => {
   editingStudent.value = { ...students.value[index] };
-  newStudent.value = { ...editingStudent.value };
+  newStudent.value = {
+    full_name: editingStudent.value.full_name,
+    id_card: editingStudent.value.id_card,
+    class: editingStudent.value.class,
+  };
   validateForm();
   showModal.value = true;
 };
 
-const submitStudent = () => {
+// Submit student (create only, as API doesn't support update)
+const submitStudent = async () => {
   if (!isFormValid.value) return;
 
-  if (editingStudent.value) {
-    // Update existing student
-    const index = students.value.findIndex(
-      (s) => s.id === editingStudent.value!.id
-    );
-    if (index !== -1) {
-      students.value[index] = {
-        ...newStudent.value,
-        id: editingStudent.value.id,
-      } as Student;
-      toast.success("Student updated successfully!");
-    }
-  } else {
-    // Add new student
-    const id = `${students.value.length + 1}-${Math.floor(
-      Math.random() * 1000
-    )}`;
-    students.value.push({
-      ...newStudent.value,
-      id,
-    } as Student);
-    toast.success("Student added successfully!");
+  if (!isAuthenticated.value || !token.value) {
+    toast.error("Please log in to add a student");
+    router.push("/login");
+    return;
   }
 
-  newStudent.value = {
-    name: "",
-    id_card: "",
-    contact_number: "",
-    registration_date: "",
-  };
-  showModal.value = false;
-  editingStudent.value = null;
+  try {
+    const payload = {
+      full_name: newStudent.value.full_name,
+      id_card: newStudent.value.id_card,
+      student_class: newStudent.value.class,
+    };
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        Accept: "*/*",
+        Authorization: `Bearer ${token.value}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    toast.success((result.message || "Student created") + " successfully!");
+
+    await fetchStudents();
+
+    newStudent.value = {
+      full_name: "",
+      id_card: "",
+      class: "",
+    };
+    showModal.value = false;
+    editingStudent.value = null;
+  } catch (error) {
+    console.error("Error creating student:", error);
+    toast.error("Failed to create student");
+  }
 };
 
+// Delete student (not implemented in API, keeping local deletion as fallback)
 const deleteStudent = (index: number) => {
   students.value.splice(index, 1);
   toast.success("Student deleted successfully!");
 };
 
+// Handle row click for visual feedback
 const handleRowClick = (index: number) => {
   clickedRow.value = index;
   setTimeout(() => {
     clickedRow.value = null;
-  }, 300); // Reset after 300ms for visual feedback
+  }, 300);
 };
+
+onMounted(fetchStudents);
 </script>
 
 <style scoped>

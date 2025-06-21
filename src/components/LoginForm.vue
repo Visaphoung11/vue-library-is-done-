@@ -1,97 +1,85 @@
-<!-- components/LoginForm.vue -->
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900"
-  >
-    <div
-      class="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
-    >
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-          Library Management System
-        </h1>
-      </div>
+  <div class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+      <h1 class="text-2xl font-bold text-center mb-6">Library Login</h1>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div>
+      <form @submit.prevent="handleLogin">
+        <div class="mb-4">
           <label
+            class="block text-sm font-medium text-gray-700 mb-1"
             for="username"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >Username</label
           >
           <input
-            id="username"
             v-model="username"
+            id="username"
             type="text"
             required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Enter username"
+            class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div>
+        <div class="mb-6">
           <label
+            class="block text-sm font-medium text-gray-700 mb-1"
             for="password"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >Password</label
           >
           <input
-            id="password"
             v-model="password"
+            id="password"
             type="password"
             required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Enter password"
+            class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <button
           type="submit"
-          :disabled="isLoading"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          :disabled="loading"
+          class="w-full bg-blue-500 text-white font-semibold py-2 rounded hover:bg-blue-600 focus:outline-none"
         >
-          {{ isLoading ? "Logging in..." : "Login" }}
+          <span v-if="loading">Logging in...</span>
+          <span v-else>Login</span>
         </button>
-      </form>
 
-      <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
-        <p><strong>Demo Credentials:</strong></p>
-        <p>Admin: admin / admin123</p>
-        <p>Librarian: librarian / lib123</p>
-      </div>
+        <p v-if="error" class="mt-4 text-red-500 text-sm text-center">
+          {{ error }}
+        </p>
+      </form>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 
+const username = ref("");
+const password = ref("");
+const loading = ref(false);
+const error = ref("");
+
 const router = useRouter();
 const { login } = useAuth();
 
-const username = ref<string>("");
-const password = ref<string>("");
-const isLoading = ref<boolean>(false);
+const handleLogin = async () => {
+  error.value = "";
+  loading.value = true;
 
-const handleSubmit = async (): Promise<void> => {
-  isLoading.value = true;
+  const success = await login(username.value, password.value);
 
-  try {
-    const success = await login(username.value, password.value);
+  loading.value = false;
 
-    if (success) {
-      alert("Login successful! Welcome to the Library Management System");
-      await router.push("/dashboard");
-    } else {
-      alert("Invalid username or password");
-    }
-  } catch (error) {
-    console.error("Login error:", error);
-    alert("An error occurred during login");
-  } finally {
-    isLoading.value = false;
+  if (success) {
+    router.push("/dashboard"); // Adjust path as needed
+  } else {
+    error.value = "Invalid username or password. Please try again.";
   }
 };
 </script>
+
+<style scoped>
+/* Optional: Add custom styles here if needed */
+</style>
