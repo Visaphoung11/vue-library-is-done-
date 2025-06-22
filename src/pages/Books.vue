@@ -1,4 +1,3 @@
-```vue
 <template>
   <main class="flex-1 p-4 sm:p-8 bg-white min-h-screen mt-0">
     <!-- Header -->
@@ -121,13 +120,10 @@
               {{ t("books.fields.description") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              {{ t("books.fields.author_id") }}
+              {{ t("books.fields.author_name") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               {{ t("books.fields.created_by") }}
-            </th>
-            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              {{ t("books.add") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               {{ t("books.edit") }}
@@ -167,20 +163,12 @@
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ book.author_id }}
+              {{ book.author_name }}
             </td>
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
               {{ book.created_by }}
-            </td>
-            <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              <button
-                @click.stop="openAddModal"
-                class="bg-orange-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-orange-500 transition-colors duration-300"
-              >
-                {{ t("books.add") }}
-              </button>
             </td>
             <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
@@ -192,7 +180,7 @@
             </td>
             <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
-                @click.stop="deleteBook(index)"
+                @click.stop="deleteBook(book.id)"
                 class="bg-red-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-red-500 transition-colors duration-300"
               >
                 {{ t("books.delete") }}
@@ -206,9 +194,15 @@
     <!-- Pagination -->
     <div class="flex justify-end mt-4 sm:mt-6 space-x-2 sm:space-x-3">
       <button
-        v-for="page in 3"
+        v-for="page in totalPages"
         :key="page"
-        class="border px-3 sm:px-4 py-1 sm:py-2 text-blue-600 border-blue-500 rounded-lg hover:bg-blue-50 transition-colors duration-300"
+        :class="[
+          'border px-3 sm:px-4 py-1 sm:py-2 rounded-lg transition-colors duration-300',
+          currentPage === page
+            ? 'bg-blue-500 text-white'
+            : 'text-blue-600 border-blue-500 hover:bg-blue-50',
+        ]"
+        @click="fetchBooks(page)"
       >
         {{ page }}
       </button>
@@ -227,7 +221,8 @@ interface Book {
   id: string;
   title: string;
   description: string;
-  author_id: number;
+  author_id?: number; // Optional since not always provided
+  author_name: string; // Added to match backend response
   created_by: number;
 }
 
@@ -243,8 +238,9 @@ const newBook = ref<Partial<Book>>({
   title: "",
   description: "",
   author_id: undefined,
+  author_name: "", // Not used for input, but included for consistency
 });
-const errors = ref<Partial<Record<keyof Book, string>>>({
+const errors = ref<Partial<Record<keyof Omit<Book, "id">, string>>>({
   title: "",
   description: "",
   author_id: "",
@@ -253,41 +249,8 @@ const showModal = ref(false);
 const clickedRow = ref<number | null>(null);
 const editingBook = ref<Book | null>(null);
 const isFormValid = ref(false);
-
-// Fetch books from API
-const fetchBooks = async () => {
-  if (!isAuthenticated.value || !token.value) {
-    toast.error(t("auth.login_required"));
-    router.push("/login");
-    return;
-  }
-
-  try {
-    const response = await fetch(API_URL, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token.value}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    books.value = data.map((book: any) => ({
-      id: book.id.toString(),
-      title: book.title,
-      description: book.description,
-      author_id: book.author_id,
-      created_by: book.created_by,
-    }));
-  } catch (error) {
-    console.error("Error fetching books:", error);
-    toast.error(t("books.fetch_failed"));
-  }
-};
+const currentPage = ref(1);
+const totalPages = ref(1);
 
 // Validate form inputs
 const validateForm = () => {
@@ -309,8 +272,53 @@ const validateForm = () => {
         ? ""
         : t("books.errors.author_id_required"),
   };
-
   isFormValid.value = Object.values(errors.value).every((error) => !error);
+};
+
+// Fetch books (GET)
+const fetchBooks = async (page = 1) => {
+  if (!isAuthenticated.value || !token.value) {
+    toast.error(t("auth.login_required"));
+    router.push("/login");
+    return;
+  }
+  try {
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token.value}`,
+    };
+    console.log("fetchBooks - Headers:", headers); // Debug
+    const response = await fetch(`${API_URL}?page=${page}&limit=10`, {
+      method: "GET",
+      headers,
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log("fetchBooks - Error:", errorData); // Debug
+      if (response.status === 401) {
+        toast.error("Session expired, please log in again");
+        router.push("/login");
+      }
+      throw new Error(
+        errorData.message || `HTTP error! Status: ${response.status}`
+      );
+    }
+    const data = await response.json();
+    console.log("fetchBooks - Data:", data); // Debug
+    books.value = data.books.map((book: any) => ({
+      id: book.id.toString(),
+      title: book.title,
+      description: book.description,
+      author_id: book.author_id || 1, // Fallback, adjust if needed
+      author_name: book.author_name || "Unknown", // Map author_name from response
+      created_by: book.created_by,
+    }));
+    currentPage.value = data.currentPage;
+    totalPages.value = data.totalPages;
+  } catch (error) {
+    console.error("Error fetching books:", error);
+    toast.error(t("books.fetch_failed"));
+  }
 };
 
 // Open modal for adding a new book
@@ -320,12 +328,9 @@ const openAddModal = () => {
     title: "",
     description: "",
     author_id: undefined,
+    author_name: "",
   };
-  errors.value = {
-    title: "",
-    description: "",
-    author_id: "",
-  };
+  errors.value = { title: "", description: "", author_id: "" };
   isFormValid.value = false;
   showModal.value = true;
 };
@@ -337,21 +342,20 @@ const openEditModal = (index: number) => {
     title: editingBook.value.title,
     description: editingBook.value.description,
     author_id: editingBook.value.author_id,
+    author_name: editingBook.value.author_name,
   };
   validateForm();
   showModal.value = true;
 };
 
-// Submit book (create only, as API doesn't support update)
+// Submit book (POST or PUT)
 const submitBook = async () => {
   if (!isFormValid.value) return;
-
   if (!isAuthenticated.value || !token.value || !user.value) {
     toast.error(t("auth.login_required"));
     router.push("/login");
     return;
   }
-
   try {
     const payload = {
       title: newBook.value.title,
@@ -359,43 +363,89 @@ const submitBook = async () => {
       author_id: newBook.value.author_id,
       created_by: parseInt(user.value.id),
     };
-
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        Accept: "*/*",
-        Authorization: `Bearer ${token.value}`,
-        "Content-Type": "application/json",
-      },
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token.value}`,
+      "Content-Type": "application/json",
+    };
+    console.log("submitBook - Headers:", headers); // Debug
+    console.log("submitBook - Payload:", payload); // Debug
+    const isEditing = !!editingBook.value;
+    const url = isEditing ? `${API_URL}/${editingBook.value?.id}` : API_URL;
+    const method = isEditing ? "PUT" : "POST";
+    const response = await fetch(url, {
+      method,
+      headers,
       body: JSON.stringify(payload),
     });
-
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      const errorData = await response.json();
+      console.log("submitBook - Error:", errorData); // Debug
+      if (response.status === 401) {
+        toast.error("Session expired, please log in again");
+        router.push("/login");
+      }
+      throw new Error(
+        errorData.message || `HTTP error! Status: ${response.status}`
+      );
     }
-
     const result = await response.json();
-    toast.success((result.message || t("books.created")) + " successfully!");
-
-    await fetchBooks();
-
+    toast.success(
+      result.message || t(isEditing ? "books.updated" : "books.created")
+    );
+    await fetchBooks(currentPage.value);
+    showModal.value = false;
+    editingBook.value = null;
     newBook.value = {
       title: "",
       description: "",
       author_id: undefined,
+      author_name: "",
     };
-    showModal.value = false;
-    editingBook.value = null;
   } catch (error) {
-    console.error("Error creating book:", error);
-    toast.error(t("books.create_failed"));
+    console.error("Error submitting book:", error);
+    toast.error(
+      t(editingBook.value ? "books.update_failed" : "books.create_failed")
+    );
   }
 };
 
-// Delete book (not implemented in API, keeping local deletion as fallback)
-const deleteBook = (index: number) => {
-  books.value.splice(index, 1);
-  toast.success(t("books.deleted"));
+// Delete book (DELETE)
+const deleteBook = async (bookId: string) => {
+  if (!isAuthenticated.value || !token.value) {
+    toast.error(t("auth.login_required"));
+    router.push("/login");
+    return;
+  }
+  if (!confirm(t("books.confirm_delete"))) return;
+  try {
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token.value}`,
+    };
+    console.log("deleteBook - Headers:", headers); // Debug
+    const response = await fetch(`${API_URL}/${bookId}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log("deleteBook - Error:", errorData); // Debug
+      if (response.status === 401) {
+        toast.error("Session expired, please log in again");
+        router.push("/login");
+      }
+      throw new Error(
+        errorData.message || `HTTP error! Status: ${response.status}`
+      );
+    }
+    const result = await response.json();
+    toast.success(result.message || t("books.deleted"));
+    await fetchBooks(currentPage.value);
+  } catch (error) {
+    console.error("Error deleting book:", error);
+    toast.error(t("books.delete_failed"));
+  }
 };
 
 // Handle row click for visual feedback
@@ -406,7 +456,7 @@ const handleRowClick = (index: number) => {
   }, 300);
 };
 
-onMounted(fetchBooks);
+onMounted(() => fetchBooks());
 </script>
 
 <style scoped>
@@ -442,13 +492,11 @@ onMounted(fetchBooks);
   animation: slide-in 0.4s ease-out;
 }
 
-/* Ensure table is responsive */
 table {
   width: 100%;
   table-layout: auto;
 }
 
-/* Improve readability on small screens */
 @media (max-width: 640px) {
   table {
     font-size: 0.75rem;
@@ -459,7 +507,6 @@ table {
   }
 }
 
-/* Custom backdrop blur */
 .backdrop-blur-sm {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);

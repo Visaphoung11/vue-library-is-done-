@@ -21,6 +21,7 @@ const translations: Translations = {
     "students.edit": "Edit",
     "students.action": "Action",
     "students.number": "Number",
+    "students.class": "class",
     "students.add": "Add",
     "students.delete": "Delete",
     "books.overview": "Manage your library books",
@@ -44,6 +45,7 @@ const translations: Translations = {
     "books.errors.description_required": "Description is required",
     "books.errors.author_id_required": "Author ID must be a positive number",
     "auth.login_required": "Please log in to access this page",
+    "books.fields.author_name": "Author Name",
   },
   km: {
     "nav.dashboard": "ផ្ទាំងគ្រប់គ្រង",
@@ -72,6 +74,7 @@ const translations: Translations = {
     "books.delete": "លុប",
     "books.cancel": "បោះបង់",
     "books.created": "សៀវភៅបានបង្កើត",
+    "students.class": "ថ្នាក់",
     "books.deleted": "សៀវភៅបានលុបដោយជោគជ័យ!",
     "books.fetch_failed": "បរាជ័យក្នុងការទៅយកសៀវភៅ",
     "books.create_failed": "បរាជ័យក្នុងការបង្កើតសៀវភៅ",
@@ -86,6 +89,7 @@ const translations: Translations = {
     "books.errors.author_id_required":
       "លេខសម្គាល់អ្នកនិពន្ធត្រូវតែជាលេខវិជ្ជមាន",
     "auth.login_required": "សូមចូលគណនីដើម្បីចូលប្រើទំព័រនេះ",
+    "books.fields.author_name": "ឈ្មោះអ្នកនិពន្ធ",
   },
 };
 

@@ -4,10 +4,10 @@
     <h1
       class="text-2xl sm:text-3xl font-semibold text-gray-800 animate-fade-in"
     >
-      {{ t("nav.dashboard") }}
+      {{ t("nav.students") }}
     </h1>
     <p class="text-gray-500 mb-4 sm:mb-6">
-      {{ t("dashboard.overview") }}
+      {{ t("students.overview") }}
     </p>
 
     <!-- Add Student Button -->
@@ -34,14 +34,14 @@
         class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg animate-form-slide"
       >
         <h3 class="text-lg font-semibold text-gray-800 mb-4">
-          {{ editingStudent ? "Edit Student" : "Add New Student" }}
+          {{ editingStudent ? t("students.edit") : t("students.add") }}
         </h3>
         <form @submit.prevent="submitStudent">
           <div class="grid grid-cols-1 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700"
-                >Name</label
-              >
+              <label class="block text-sm font-medium text-gray-700">{{
+                t("students.fields.full_name")
+              }}</label>
               <input
                 v-model="newStudent.full_name"
                 required
@@ -53,9 +53,9 @@
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700"
-                >ID Card</label
-              >
+              <label class="block text-sm font-medium text-gray-700">{{
+                t("students.fields.id_card")
+              }}</label>
               <input
                 v-model="newStudent.id_card"
                 required
@@ -67,11 +67,11 @@
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700"
-                >Class</label
-              >
+              <label class="block text-sm font-medium text-gray-700">{{
+                t("students.fields.student_class")
+              }}</label>
               <input
-                v-model="newStudent.class"
+                v-model="newStudent.student_class"
                 required
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white text-gray-800"
                 @input="validateForm"
@@ -87,7 +87,7 @@
               @click="showModal = false"
               class="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors duration-300"
             >
-              Cancel
+              {{ t("students.cancel") }}
             </button>
             <button
               type="submit"
@@ -95,7 +95,7 @@
               class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-300"
               :class="{ 'opacity-50 cursor-not-allowed': !isFormValid }"
             >
-              {{ editingStudent ? "Update Student" : "Add Student" }}
+              {{ editingStudent ? t("students.update") : t("students.add") }}
             </button>
           </div>
         </form>
@@ -117,13 +117,10 @@
               {{ t("students.id") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              Class
+              {{ t("students.class") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               {{ t("books.fields.created_by") }}
-            </th>
-            <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              {{ t("students.add") }}
             </th>
             <th class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               {{ t("students.edit") }}
@@ -163,7 +160,7 @@
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
             >
-              {{ student.class }}
+              {{ student.student_class }}
             </td>
             <td
               class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200 text-gray-800"
@@ -172,23 +169,15 @@
             </td>
             <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
-                @click.stop="openAddModal"
-                class="bg-orange-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-orange-500 transition-colors duration-300"
-              >
-                {{ t("students.add") }}
-              </button>
-            </td>
-            <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
-              <button
                 @click.stop="openEditModal(index)"
                 class="bg-blue-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-blue-500 transition-colors duration-300"
               >
-                Edit
+                {{ t("students.edit") }}
               </button>
             </td>
             <td class="px-2 sm:px-6 py-2 sm:py-3 border border-gray-200">
               <button
-                @click.stop="deleteStudent(index)"
+                @click.stop="deleteStudent(student.id)"
                 class="bg-red-400 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-red-500 transition-colors duration-300"
               >
                 {{ t("students.delete") }}
@@ -202,9 +191,15 @@
     <!-- Pagination -->
     <div class="flex justify-end mt-4 sm:mt-6 space-x-2 sm:space-x-3">
       <button
-        v-for="page in 3"
+        v-for="page in totalPages"
         :key="page"
-        class="border px-3 sm:px-4 py-1 sm:py-2 text-blue-600 border-blue-500 rounded-lg hover:bg-blue-50 transition-colors duration-300"
+        :class="[
+          'border px-3 sm:px-4 py-1 sm:py-2 rounded-lg transition-colors duration-300',
+          currentPage === page
+            ? 'bg-blue-500 text-white'
+            : 'text-blue-600 border-blue-500 hover:bg-blue-50',
+        ]"
+        @click="fetchStudents(page)"
       >
         {{ page }}
       </button>
@@ -223,14 +218,14 @@ interface Student {
   id: string;
   full_name: string;
   id_card: string;
-  class: string;
+  student_class: string;
   created_by: number;
 }
 
 const { t } = useLanguage();
 const toast = useToast();
 const router = useRouter();
-const { token, isAuthenticated } = useAuth();
+const { token, isAuthenticated, user } = useAuth();
 
 const API_URL = "http://localhost:3000/api/students";
 
@@ -238,9 +233,11 @@ const students = ref<Student[]>([]);
 const newStudent = ref<Partial<Student>>({
   full_name: "",
   id_card: "",
-  class: "",
+  student_class: "",
 });
-const errors = ref<Partial<Record<keyof Student | "student_class", string>>>({
+const errors = ref<
+  Partial<Record<keyof Omit<Student, "id" | "created_by">, string>>
+>({
   full_name: "",
   id_card: "",
   student_class: "",
@@ -249,79 +246,75 @@ const showModal = ref(false);
 const clickedRow = ref<number | null>(null);
 const editingStudent = ref<Student | null>(null);
 const isFormValid = ref(false);
-
-// Fetch students from API
-const fetchStudents = async () => {
-  if (!isAuthenticated.value || !token.value) {
-    toast.error("Please log in to access students");
-    router.push("/login");
-    return;
-  }
-
-  try {
-    const response = await fetch(API_URL, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token.value}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    students.value = data.map((student: any) => ({
-      id: student.id.toString(),
-      full_name: student.full_name,
-      id_card: student.id_card,
-      class: student.class,
-      created_by: student.created_by,
-    }));
-  } catch (error) {
-    console.error("Error fetching students:", error);
-    toast.error("Failed to fetch students");
-  }
-};
+const currentPage = ref(1);
+const totalPages = ref(1);
 
 // Validate form inputs
 const validateForm = () => {
   errors.value = {
-    full_name: newStudent.value.full_name ? "" : "Name is required",
+    full_name: newStudent.value.full_name
+      ? ""
+      : t("students.errors.full_name_required"),
     id_card: newStudent.value.id_card
-      ? students.value.some(
-          (s) =>
-            s.id_card === newStudent.value.id_card &&
-            s.id !== (editingStudent.value?.id || "")
-        )
-        ? "ID Card must be unique"
-        : ""
-      : "ID Card is required",
-    class: newStudent.value.class ? "" : "Class is required",
+      ? ""
+      : t("students.errors.id_card_required"),
+    student_class: newStudent.value.student_class
+      ? ""
+      : t("students.errors.student_class_required"),
   };
-
   isFormValid.value = Object.values(errors.value).every((error) => !error);
 };
 
-export interface StudentForm {
-  full_name: string;
-  id_card: string;
-  student_class: string;
-}
+// Fetch students (GET)
+const fetchStudents = async (page = 1) => {
+  if (!isAuthenticated.value || !token.value) {
+    toast.error(t("auth.login_required"));
+    router.push("/login");
+    return;
+  }
+  try {
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token.value}`,
+    };
+    console.log("fetchStudents - Headers:", headers); // Debug
+    const response = await fetch(`${API_URL}?page=${page}&limit=10`, {
+      method: "GET",
+      headers,
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log("fetchStudents - Error:", errorData); // Debug
+      if (response.status === 401) {
+        toast.error("Session expired, please log in again");
+        router.push("/login");
+      }
+      throw new Error(
+        errorData.message || `HTTP error! Status: ${response.status}`
+      );
+    }
+    const data = await response.json();
+    console.log("fetchStudents - Data:", data); // Debug
+    students.value = data.students.map((student: any) => ({
+      id: student.id.toString(),
+      full_name: student.full_name,
+      id_card: student.id_card,
+      student_class: student.class, // Note: backend uses 'class', not 'student_class'
+      created_by: student.created_by,
+    }));
+    currentPage.value = data.currentPage;
+    totalPages.value = data.totalPages;
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    toast.error(t("students.fetch_failed"));
+  }
+};
+
 // Open modal for adding a new student
 const openAddModal = () => {
   editingStudent.value = null;
-  newStudent.value = {
-    full_name: "",
-    id_card: "",
-    class: "",
-  };
-  errors.value = {
-    full_name: "",
-    id_card: "",
-    student_class: "",
-  };
+  newStudent.value = { full_name: "", id_card: "", student_class: "" };
+  errors.value = { full_name: "", id_card: "", student_class: "" };
   isFormValid.value = false;
   showModal.value = true;
 };
@@ -332,65 +325,109 @@ const openEditModal = (index: number) => {
   newStudent.value = {
     full_name: editingStudent.value.full_name,
     id_card: editingStudent.value.id_card,
-    class: editingStudent.value.class,
+    student_class: editingStudent.value.student_class,
   };
   validateForm();
   showModal.value = true;
 };
 
-// Submit student (create only, as API doesn't support update)
+// Submit student (POST or PUT)
 const submitStudent = async () => {
   if (!isFormValid.value) return;
-
-  if (!isAuthenticated.value || !token.value) {
-    toast.error("Please log in to add a student");
+  if (!isAuthenticated.value || !token.value || !user.value) {
+    toast.error(t("auth.login_required"));
     router.push("/login");
     return;
   }
-
   try {
     const payload = {
       full_name: newStudent.value.full_name,
       id_card: newStudent.value.id_card,
-      student_class: newStudent.value.class,
+      student_class: newStudent.value.student_class,
+      created_by: parseInt(user.value.id),
     };
-
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        Accept: "*/*",
-        Authorization: `Bearer ${token.value}`,
-        "Content-Type": "application/json",
-      },
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token.value}`,
+      "Content-Type": "application/json",
+    };
+    console.log("submitStudent - Headers:", headers); // Debug
+    console.log("submitStudent - Payload:", payload); // Debug
+    const isEditing = !!editingStudent.value;
+    const url = isEditing ? `${API_URL}/${editingStudent.value?.id}` : API_URL;
+    const method = isEditing ? "PUT" : "POST";
+    const response = await fetch(url, {
+      method,
+      headers,
       body: JSON.stringify(payload),
     });
-
     if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      const errorData = await response.json();
+      console.log("submitStudent - Error:", errorData); // Debug
+      if (response.status === 401) {
+        toast.error("Session expired, please log in again");
+        router.push("/login");
+      }
+      throw new Error(
+        errorData.message || `HTTP error! Status: ${response.status}`
+      );
     }
-
     const result = await response.json();
-    toast.success((result.message || "Student created") + " successfully!");
-
-    await fetchStudents();
-
-    newStudent.value = {
-      full_name: "",
-      id_card: "",
-      class: "",
-    };
+    toast.success(
+      result.message || t(isEditing ? "students.updated" : "students.created")
+    );
+    await fetchStudents(currentPage.value);
     showModal.value = false;
     editingStudent.value = null;
+    newStudent.value = { full_name: "", id_card: "", student_class: "" };
   } catch (error) {
-    console.error("Error creating student:", error);
-    toast.error("Failed to create student");
+    console.error("Error submitting student:", error);
+    toast.error(
+      t(
+        editingStudent.value
+          ? "students.update_failed"
+          : "students.create_failed"
+      )
+    );
   }
 };
 
-// Delete student (not implemented in API, keeping local deletion as fallback)
-const deleteStudent = (index: number) => {
-  students.value.splice(index, 1);
-  toast.success("Student deleted successfully!");
+// Delete student (DELETE)
+const deleteStudent = async (studentId: string) => {
+  if (!isAuthenticated.value || !token.value) {
+    toast.error(t("auth.login_required"));
+    router.push("/login");
+    return;
+  }
+  if (!confirm(t("students.confirm_delete"))) return;
+  try {
+    const headers = {
+      Accept: "application/json",
+      Authorization: `Bearer ${token.value}`,
+    };
+    console.log("deleteStudent - Headers:", headers); // Debug
+    const response = await fetch(`${API_URL}/${studentId}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log("deleteStudent - Error:", errorData); // Debug
+      if (response.status === 401) {
+        toast.error("Session expired, please log in again");
+        router.push("/login");
+      }
+      throw new Error(
+        errorData.message || `HTTP error! Status: ${response.status}`
+      );
+    }
+    const result = await response.json();
+    toast.success(result.message || t("students.deleted"));
+    await fetchStudents(currentPage.value);
+  } catch (error) {
+    console.error("Error deleting student:", error);
+    toast.error(t("students.delete_failed"));
+  }
 };
 
 // Handle row click for visual feedback
@@ -401,7 +438,7 @@ const handleRowClick = (index: number) => {
   }, 300);
 };
 
-onMounted(fetchStudents);
+onMounted(() => fetchStudents());
 </script>
 
 <style scoped>
@@ -437,26 +474,23 @@ onMounted(fetchStudents);
   animation: slide-in 0.4s ease-out;
 }
 
-/* Ensure table is responsive */
 table {
   width: 100%;
   table-layout: auto;
 }
 
-/* Improve readability on small screens */
 @media (max-width: 640px) {
   table {
-    font-size: 0.75rem; /* Smaller text on mobile */
+    font-size: 0.75rem;
   }
   th,
   td {
-    min-width: 80px; /* Prevent columns from collapsing too much */
+    min-width: 80px;
   }
 }
 
-/* Custom backdrop blur for Tailwind */
 .backdrop-blur-sm {
   backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px); /* For Safari compatibility */
+  -webkit-backdrop-filter: blur(4px);
 }
 </style>
